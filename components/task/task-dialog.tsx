@@ -25,6 +25,7 @@ import {
 import { Plus, X, Tag, CheckSquare, AlertCircle } from 'lucide-react';
 import { ITask } from '@/models/Task';
 import { format } from 'date-fns';
+import { useTranslation } from '@/lib/hooks/use-translation';
 
 const taskSchema = z.object({
   title: z
@@ -66,6 +67,7 @@ export default function TaskDialog({
 }: TaskDialogProps) {
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
   const [tagInput, setTagInput] = useState('');
+  const { t } = useTranslation();
 
   const {
     register,
@@ -203,19 +205,21 @@ export default function TaskDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
         <DialogHeader>
-          <DialogTitle>{task ? 'Edit Task' : 'Create New Task'}</DialogTitle>
+          <DialogTitle>
+            {task ? t('tasks.editTask') : t('tasks.newTask')}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="title">{t('tasks.title')} *</Label>
               <Input
                 id="title"
                 {...register('title')}
-                placeholder="Enter task title"
+                placeholder={t('tasks.title')}
               />
               {errors.title && (
                 <p className="text-sm text-red-600">{errors.title.message}</p>
@@ -223,7 +227,7 @@ export default function TaskDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">{t('tasks.status')}</Label>
               <Select
                 onValueChange={(value) =>
                   setValue(
@@ -233,41 +237,43 @@ export default function TaskDialog({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder={t('tasks.status')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="backlog">Backlog</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
+                  <SelectItem value="backlog">{t('tasks.backlog')}</SelectItem>
+                  <SelectItem value="in_progress">
+                    {t('tasks.inProgress')}
+                  </SelectItem>
+                  <SelectItem value="done">{t('tasks.done')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="priority">Priority</Label>
+              <Label htmlFor="priority">{t('tasks.priority')}</Label>
               <Select
                 onValueChange={(value) =>
                   setValue('priority', value as 'low' | 'med' | 'high')
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
+                  <SelectValue placeholder={t('tasks.priority')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="med">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="low">{t('tasks.low')}</SelectItem>
+                  <SelectItem value="med">{t('tasks.medium')}</SelectItem>
+                  <SelectItem value="high">{t('tasks.high')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t('tasks.description')}</Label>
             <textarea
               id="description"
               {...register('description')}
-              placeholder="Enter task description"
+              placeholder={t('tasks.description')}
               className="w-full min-h-20 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.description && (
@@ -277,25 +283,25 @@ export default function TaskDialog({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startAt">Start Date</Label>
+              <Label htmlFor="startAt">{t('tasks.startDate')}</Label>
               <Input id="startAt" type="date" {...register('startAt')} />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dueAt">Due Date</Label>
+              <Label htmlFor="dueAt">{t('tasks.dueDate')}</Label>
               <Input id="dueAt" type="date" {...register('dueAt')} />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Tags</Label>
+            <Label>{t('tasks.tags')}</Label>
             <div className="flex space-x-2">
               <Input
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
-                placeholder="Add a tag"
+                placeholder={t('tasks.tagPlaceholder')}
                 onKeyPress={(e) =>
                   e.key === 'Enter' && (e.preventDefault(), addTag())
                 }
@@ -331,7 +337,7 @@ export default function TaskDialog({
             <div className="flex items-center justify-between">
               <Label className="flex items-center space-x-2">
                 <CheckSquare className="h-4 w-4" />
-                <span>Checklist</span>
+                <span>{t('tasks.checklist')}</span>
               </Label>
               <Button
                 type="button"
@@ -340,7 +346,7 @@ export default function TaskDialog({
                 variant="outline"
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Add Item
+                {t('tasks.addItem')}
               </Button>
             </div>
 
@@ -363,7 +369,7 @@ export default function TaskDialog({
                       onChange={(e) =>
                         updateChecklistItem(item.id, { label: e.target.value })
                       }
-                      placeholder="Checklist item"
+                      placeholder={t('tasks.checklistItemPlaceholder')}
                       className="flex-1"
                     />
                     <Button
@@ -385,7 +391,7 @@ export default function TaskDialog({
 
             {!hasChecklist && (
               <div className="space-y-2">
-                <Label htmlFor="percent">Progress (%)</Label>
+                <Label htmlFor="percent">{t('tasks.progress')} (%)</Label>
                 <Input
                   id="percent"
                   type="number"
@@ -409,23 +415,21 @@ export default function TaskDialog({
             {hasChecklist && (
               <div className="flex items-center space-x-2 text-sm text-slate-500">
                 <AlertCircle className="h-4 w-4" />
-                <span>
-                  Progress is automatically calculated from checklist completion
-                </span>
+                <span>{t('tasks.progressAuto')}</span>
               </div>
             )}
           </div>
 
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting
-                ? 'Saving...'
+                ? t('common.saving')
                 : task
-                  ? 'Update Task'
-                  : 'Create Task'}
+                  ? t('tasks.editTask')
+                  : t('tasks.newTask')}
             </Button>
           </div>
         </form>

@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   CheckSquare,
+  CheckCircle,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/hooks/use-translation';
 import LanguageSwitcher from '@/components/language-switcher';
@@ -23,11 +24,16 @@ export default function AppSidebar() {
     { name: t('navigation.board'), href: '/app', icon: LayoutDashboard },
     { name: t('navigation.timeline'), href: '/app/timeline', icon: Calendar },
     { name: t('navigation.allTasks'), href: '/app/tasks', icon: List },
+    {
+      name: t('navigation.completed'),
+      href: '/app/completed',
+      icon: CheckCircle,
+    },
     { name: t('navigation.settings'), href: '/app/settings', icon: Settings },
   ];
 
   return (
-    <div className="w-64 bg-white border-r border-slate-200 min-h-screen">
+    <div className="w-64 bg-white border-r border-slate-200 min-h-screen hidden lg:block">
       <div className="p-6">
         <div className="flex items-center space-x-2 mb-8">
           <CheckSquare className="h-8 w-8 text-blue-600" />
@@ -55,14 +61,16 @@ export default function AppSidebar() {
         </nav>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-200 space-y-2">
-        <LanguageSwitcher />
+      <div className="absolute max-w-[200px] w-full bottom-0 left-0 right-0 p-2 space-y-2">
+        <div className="px-2">
+          <LanguageSwitcher />
+        </div>
         <Button
           variant="ghost"
           onClick={() => signOut({ callbackUrl: '/' })}
-          className="w-full justify-start text-slate-600 hover:text-slate-900"
+          className="w-full justify-start text-slate-600 hover:text-slate-900 text-sm"
         >
-          <LogOut className="h-4 w-4 mr-3" />
+          <LogOut className="h-4 w-4 mr-2" />
           {t('auth.signOut')}
         </Button>
       </div>

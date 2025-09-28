@@ -19,15 +19,29 @@ export async function GET(request: NextRequest) {
       q: searchParams.get('q') || undefined,
       from: searchParams.get('from') || undefined,
       to: searchParams.get('to') || undefined,
+      scope: searchParams.get('scope') || undefined,
+      priority: searchParams.get('priority') || undefined,
     });
 
     await connectDB();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filter: any = { userId: session.user.id };
+    const filter: any = {};
+
+    // Scope filtering
+    if (query.scope === 'my') {
+      filter.userId = session.user.id;
+    } else if (query.scope === 'global') {
+      filter.userId = { $ne: session.user.id };
+    }
+    // 'all' scope shows all tasks (no userId filter)
 
     if (query.status) {
       filter.status = query.status;
+    }
+
+    if (query.priority) {
+      filter.priority = query.priority;
     }
 
     if (query.q) {
@@ -54,7 +68,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const tasks = await Task.find(filter).sort({ status: 1, order: 1 }).lean();
+    console.log('API: Filter object:', JSON.stringify(filter, null, 2));
+
+    const tasks = await Task.find(filter)
+      .populate('userId', 'name email')
+      .sort({ status: 1, order: 1 })
+      .lean();
+
+    console.log('API: Found tasks:', tasks.length);
+    console.log('API: Sample task:', tasks[0]);
 
     return NextResponse.json(tasks);
   } catch (error) {

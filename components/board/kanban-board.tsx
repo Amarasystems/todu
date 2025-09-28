@@ -13,6 +13,7 @@ import TaskCard from '@/components/task/task-card';
 import TaskDialog from '@/components/task/task-dialog';
 import { ITask } from '@/models/Task';
 import { useTranslation } from '@/lib/hooks/use-translation';
+import { useSession } from 'next-auth/react';
 
 const getColumns = (t: (key: string) => string) => [
   { id: 'backlog', title: t('board.backlog'), color: 'bg-slate-100' },
@@ -26,6 +27,7 @@ interface KanbanColumnProps {
   onTaskEdit: (task: ITask) => void;
   onTaskDelete: (taskId: string) => void;
   t: (key: string) => string;
+  canEditTask: (task: ITask) => boolean;
 }
 
 function KanbanColumn({
@@ -34,6 +36,7 @@ function KanbanColumn({
   onTaskEdit,
   onTaskDelete,
   t,
+  canEditTask,
 }: KanbanColumnProps) {
   const { setNodeRef, transform, transition, isDragging } = useSortable({
     id: column.id,
@@ -56,7 +59,7 @@ function KanbanColumn({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex-1 min-w-80 ${isDragging ? 'opacity-50' : ''}`}
+      className={`w-full ${isDragging ? 'opacity-50' : ''}`}
     >
       <Card className="h-full">
         <CardHeader className={`${column.color} rounded-t-lg`}>
@@ -88,6 +91,7 @@ function KanbanColumn({
                   task={task}
                   onEdit={onTaskEdit}
                   onDelete={onTaskDelete}
+                  canEdit={canEditTask(task)}
                 />
               ))}
             </div>
@@ -104,6 +108,15 @@ export default function KanbanBoard() {
   const [editingTask, setEditingTask] = useState<ITask | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { t } = useTranslation();
+  const { data: session } = useSession();
+
+  // Check if current user can edit/delete this task
+  const canEditTask = (task: ITask) => {
+    if (!session?.user?.id) return false;
+    const taskUserId =
+      typeof task.userId === 'object' ? task.userId._id : task.userId;
+    return taskUserId.toString() === session.user.id;
+  };
 
   const fetchTasks = async () => {
     try {
@@ -134,6 +147,9 @@ export default function KanbanBoard() {
     // Find the task being moved
     const task = tasks.find((t) => t._id === taskId);
     if (!task) return;
+
+    // Only allow users to move their own tasks
+    if (!canEditTask(task)) return;
 
     // If moving to the same status, just reorder
     if (task.status === newStatus) {
@@ -227,7 +243,7 @@ export default function KanbanBoard() {
   return (
     <>
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <div className="flex space-x-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {columns.map((column) => (
             <KanbanColumn
               key={column.id}
@@ -236,6 +252,7 @@ export default function KanbanBoard() {
               onTaskEdit={handleTaskEdit}
               onTaskDelete={handleTaskDelete}
               t={t}
+              canEditTask={canEditTask}
             />
           ))}
         </div>

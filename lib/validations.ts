@@ -44,6 +44,7 @@ export const reorderTaskSchema = z.object({
 
 export const getTasksQuerySchema = z.object({
   status: z.enum(['backlog', 'in_progress', 'done']).optional(),
+  priority: z.enum(['low', 'med', 'high']).optional(),
   q: z.string().optional(),
   from: z
     .string()
@@ -53,4 +54,5 @@ export const getTasksQuerySchema = z.object({
     .string()
     .optional()
     .transform((val) => (val ? new Date(val) : undefined)),
+  scope: z.enum(['all', 'my', 'global']).optional(),
 });

@@ -6,9 +6,15 @@ export interface IChecklistItem {
   checked: boolean;
 }
 
+export interface IUser {
+  _id: string;
+  name: string;
+  email: string;
+}
+
 export interface ITask extends Document {
   _id: string;
-  userId: string;
+  userId: string | IUser;
   title: string;
   description?: string;
   status: 'backlog' | 'in_progress' | 'done';
@@ -39,7 +45,8 @@ const ChecklistItemSchema = new Schema<IChecklistItem>(
 
 const TaskSchema = new Schema<ITask>({
   userId: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'User',
     required: true,
     index: true,
   },

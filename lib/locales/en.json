@@ -5,6 +5,7 @@
     "success": "Success",
     "cancel": "Cancel",
     "save": "Save",
+    "saving": "Saving...",
     "edit": "Edit",
     "delete": "Delete",
     "add": "Add",
@@ -16,7 +17,8 @@
     "close": "Close",
     "back": "Back",
     "next": "Next",
-    "previous": "Previous"
+    "previous": "Previous",
+    "more": "more"
   },
   "auth": {
     "signIn": "Sign In",
@@ -47,6 +49,7 @@
     "board": "Board",
     "timeline": "Timeline",
     "allTasks": "All Tasks",
+    "completed": "Completed Tasks",
     "settings": "Settings",
     "dashboard": "Dashboard"
   },
@@ -76,6 +79,9 @@
     "noTasks": "No tasks yet. Create your first task to get started!",
     "noTasksFiltered": "No tasks match your filters",
     "searchPlaceholder": "Search tasks...",
+    "allTasks": "All Tasks",
+    "myTasks": "My Tasks",
+    "globalTasks": "Global Tasks",
     "allStatus": "All Status",
     "allPriority": "All Priority",
     "quickActions": "Quick Actions",
@@ -108,6 +114,14 @@
   "timeline": {
     "week": "Week",
     "month": "Month",
+    "personal": "Personal",
+    "global": "All Users",
+    "calendar": "Clean Calendar",
+    "myTimeline": "My Timeline",
+    "cleanCalendar": "Clean Calendar",
+    "cleanCalendarDescription": "Clean calendar view without tasks",
+    "filterByTag": "Filter by Tag",
+    "allTags": "All Tags",
     "weekView": "Week View",
     "monthView": "Month View",
     "tasksOnTimeline": "Tasks on Timeline",
@@ -164,5 +178,16 @@
     "taskDeleted": "Task deleted successfully",
     "taskMoved": "Task moved successfully",
     "profileUpdated": "Profile updated successfully"
+  },
+  "completed": {
+    "title": "Completed Tasks",
+    "description": "View, search, and get detailed information about all completed tasks",
+    "searchPlaceholder": "Search completed tasks...",
+    "completedTasks": "completed tasks",
+    "noCompletedTasks": "No completed tasks yet",
+    "noResultsFound": "No completed tasks match your search",
+    "viewDetails": "View Details",
+    "completedOn": "Completed On",
+    "finalProgress": "Final Progress"
   }
 }
