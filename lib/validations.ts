@@ -11,7 +11,6 @@ export const taskSchema = z.object({
     .optional(),
   status: z.enum(['backlog', 'in_progress', 'done']),
   priority: z.enum(['low', 'med', 'high']).default('med'),
-  tags: z.array(z.string()).default([]),
   startAt: z
     .string()
     .datetime()
@@ -30,7 +29,7 @@ export const taskSchema = z.object({
       })
     )
     .default([]),
-  percent: z.number().min(0).max(100).default(0),
+  percent: z.number().min(0).max(100).default(0).optional(),
 });
 
 export const updateTaskSchema = taskSchema.partial();

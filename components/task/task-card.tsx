@@ -9,7 +9,6 @@ import {
   MoreHorizontal,
   Calendar,
   CheckSquare,
-  Tag,
   Edit,
   Trash2,
 } from 'lucide-react';
@@ -110,22 +109,6 @@ export default function TaskCard({
           <p className="text-xs text-slate-600 mb-3 line-clamp-2">
             {task.description}
           </p>
-        )}
-
-        {task.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {task.tags.slice(0, 3).map((tag, index) => (
-              <Badge key={index} variant="secondary" className="text-xs">
-                <Tag className="h-3 w-3 mr-1" />
-                {tag}
-              </Badge>
-            ))}
-            {task.tags.length > 3 && (
-              <Badge variant="secondary" className="text-xs">
-                +{task.tags.length - 3}
-              </Badge>
-            )}
-          </div>
         )}
 
         {task.items.length > 0 && (

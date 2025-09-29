@@ -20,7 +20,6 @@ export interface ITask extends Document {
   status: 'backlog' | 'in_progress' | 'done';
   order: number;
   priority: 'low' | 'med' | 'high';
-  tags: string[];
   startAt?: Date;
   dueAt?: Date;
   items: IChecklistItem[];
@@ -76,11 +75,6 @@ const TaskSchema = new Schema<ITask>({
     enum: ['low', 'med', 'high'],
     default: 'med',
   },
-  tags: [
-    {
-      type: String,
-    },
-  ],
   startAt: {
     type: Date,
   },
@@ -118,6 +112,13 @@ TaskSchema.pre('save', function (next) {
   if (this.items && this.items.length > 0) {
     const checkedItems = this.items.filter((item) => item.checked).length;
     this.percent = Math.round((checkedItems / this.items.length) * 100);
+  } else if (
+    this.items &&
+    this.items.length === 0 &&
+    this.percent === undefined
+  ) {
+    // If no checklist items and percent is undefined, set to 0
+    this.percent = 0;
   }
   next();
 });

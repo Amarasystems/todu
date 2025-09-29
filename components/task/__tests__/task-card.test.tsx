@@ -11,7 +11,6 @@ const mockTask: ITask = {
   status: 'backlog',
   order: 0,
   priority: 'med',
-  tags: ['test', 'example'],
   startAt: new Date('2024-01-01'),
   dueAt: new Date('2024-01-10'),
   items: [
@@ -44,18 +43,6 @@ describe('TaskCard', () => {
     );
 
     expect(screen.getByText('Test description')).toBeInTheDocument();
-  });
-
-  it('renders task tags', () => {
-    const mockOnEdit = vi.fn();
-    const mockOnDelete = vi.fn();
-
-    render(
-      <TaskCard task={mockTask} onEdit={mockOnEdit} onDelete={mockOnDelete} />
-    );
-
-    expect(screen.getByText('test')).toBeInTheDocument();
-    expect(screen.getByText('example')).toBeInTheDocument();
   });
 
   it('renders checklist progress', () => {

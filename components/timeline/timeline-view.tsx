@@ -29,8 +29,7 @@ export default function TimelineView() {
   const [tasks, setTasks] = useState<ITask[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
-  const [timelineMode, setTimelineMode] = useState<TimelineMode>('personal');
-  const [selectedTag, setSelectedTag] = useState<string>('all');
+  const [timelineMode, setTimelineMode] = useState<TimelineMode>('global');
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const { data: session } = useSession();
@@ -56,19 +55,9 @@ export default function TimelineView() {
     return colors[Math.abs(hash) % colors.length];
   };
 
-  // Get all unique tags from tasks
-  const getAllTags = () => {
-    const allTags = new Set<string>();
-    tasks.forEach((task) => {
-      task.tags?.forEach((tag) => allTags.add(tag));
-    });
-    return Array.from(allTags).sort();
-  };
-
-  // Filter tasks by selected tag
+  // Get all tasks (no filtering needed)
   const getFilteredTasks = (taskList: ITask[]) => {
-    if (selectedTag === 'all') return taskList;
-    return taskList.filter((task) => task.tags?.includes(selectedTag));
+    return taskList;
   };
 
   const fetchTasks = async () => {
@@ -80,6 +69,33 @@ export default function TimelineView() {
         setTasks(data);
         console.log('Timeline: Fetched tasks:', data.length);
         console.log('Timeline: Sample task:', data[0]);
+
+        // Debug: Check user distribution
+        const userDistribution = data.reduce(
+          (
+            acc: Record<string, { name: string; count: number }>,
+            task: ITask
+          ) => {
+            const taskUserId =
+              typeof task.userId === 'string'
+                ? task.userId
+                : task.userId._id || task.userId.toString();
+            const userName =
+              typeof task.userId === 'object' && task.userId?.name
+                ? task.userId.name
+                : 'Unknown User';
+
+            if (!acc[taskUserId]) {
+              acc[taskUserId] = { name: userName, count: 0 };
+            }
+            acc[taskUserId].count++;
+            return acc;
+          },
+          {}
+        );
+
+        console.log('Timeline: User distribution:', userDistribution);
+        console.log('Timeline: Current user ID:', session?.user?.id);
       }
     } catch (error) {
       console.error('Failed to fetch tasks:', error);
@@ -89,8 +105,10 @@ export default function TimelineView() {
   };
 
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    if (session?.user?.id) {
+      fetchTasks();
+    }
+  }, [session?.user?.id]);
 
   // const getTasksForWeek = (weekStart: Date) => {
   //   const weekEnd = endOfWeek(weekStart);
@@ -171,24 +189,6 @@ export default function TimelineView() {
     });
     const personalTasks = getFilteredTasks(allUserTasks);
 
-    console.log('Personal Timeline Debug:');
-    console.log('Current date:', currentDate);
-    console.log('Current month:', currentDate.getMonth() + 1); // +1 because months are 0-indexed
-    console.log('Session user ID:', session?.user?.id);
-    console.log('Total tasks:', tasks.length);
-    console.log('User tasks before filtering:', allUserTasks.length);
-    console.log('User tasks after tag filtering:', personalTasks.length);
-    console.log('Sample user task:', allUserTasks[0]);
-    console.log('Sample task userId:', allUserTasks[0]?.userId);
-    console.log('Sample task dates:', {
-      startAt: allUserTasks[0]?.startAt,
-      dueAt: allUserTasks[0]?.dueAt,
-      startDate: allUserTasks[0]?.startAt
-        ? new Date(allUserTasks[0].startAt)
-        : null,
-      dueDate: allUserTasks[0]?.dueAt ? new Date(allUserTasks[0].dueAt) : null,
-    });
-
     const weekStart = startOfWeek(currentDate);
     const weekEnd = endOfWeek(currentDate);
     const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
@@ -217,7 +217,10 @@ export default function TimelineView() {
           {days.map((day) => {
             const isToday = isSameDay(day, new Date());
             const dayTasks = personalTasks.filter((task) => {
-              if (!task.startAt && !task.dueAt) return false;
+              // If task has no dates, show it on the current day (today)
+              if (!task.startAt && !task.dueAt) {
+                return isSameDay(day, new Date());
+              }
 
               const startDate = task.startAt ? new Date(task.startAt) : null;
               const dueDate = task.dueAt ? new Date(task.dueAt) : null;
@@ -268,10 +271,27 @@ export default function TimelineView() {
                       }`}
                     >
                       <div className="flex items-center space-x-1 mb-1">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
-                        <div className="font-medium truncate flex-1">
+                        <div
+                          className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            task.status === 'done'
+                              ? 'bg-green-500'
+                              : task.status === 'in_progress'
+                                ? 'bg-blue-500'
+                                : 'bg-slate-500'
+                          }`}
+                        ></div>
+                        <div
+                          className={`font-medium truncate flex-1 ${
+                            task.status === 'done'
+                              ? 'line-through text-slate-500'
+                              : ''
+                          }`}
+                        >
                           {task.title}
                         </div>
+                        {task.status === 'done' && (
+                          <div className="text-green-600 text-xs">✓</div>
+                        )}
                       </div>
                       {task.percent > 0 && (
                         <div className="mt-1">
@@ -290,129 +310,144 @@ export default function TimelineView() {
   };
 
   const renderGlobalTimeline = () => {
-    // Group filtered tasks by user
+    // Get all filtered tasks (no grouping by user)
     const filteredTasks = getFilteredTasks(tasks);
-    const userTasks = filteredTasks.reduce(
-      (acc, task) => {
-        const taskUserId =
-          typeof task.userId === 'string'
-            ? task.userId
-            : task.userId._id || task.userId.toString();
-        if (!acc[taskUserId]) {
-          acc[taskUserId] = {
-            userId: taskUserId,
-            userName: session?.user?.name || 'User',
-            tasks: [],
-          };
-        }
-        acc[taskUserId].tasks.push(task);
-        return acc;
-      },
-      {} as Record<string, { userId: string; userName: string; tasks: ITask[] }>
-    );
 
     const weekStart = startOfWeek(currentDate);
     const weekEnd = endOfWeek(currentDate);
     const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
     return (
-      <div className="space-y-6">
-        {Object.values(userTasks).map((userData) => (
-          <div key={userData.userId} className="space-y-2">
-            {/* User Header */}
-            <div className="flex items-center space-x-3">
-              <div
-                className={`w-8 h-8 rounded-full ${getUserColor(userData.userId)} flex items-center justify-center text-white font-bold text-sm`}
-              >
-                {userData.userName.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900">
-                  {userData.userName}
-                </h3>
-                <p className="text-sm text-slate-500">
-                  {userData.tasks.length} {t('board.tasks')}
-                </p>
-              </div>
-            </div>
+      <div className="space-y-4">
+        {/* Unified Timeline Header */}
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+            👥
+          </div>
+          <div>
+            <h3 className="font-semibold text-slate-900">
+              {t('timeline.global')}
+            </h3>
+            <p className="text-sm text-slate-500">
+              {filteredTasks.length} {t('board.tasks')} from all users
+            </p>
+          </div>
+        </div>
 
-            {/* User Timeline */}
-            <div className="grid grid-cols-7 gap-1 sm:gap-2">
-              {days.map((day) => {
-                const isToday = isSameDay(day, new Date());
-                const dayTasks = userData.tasks.filter((task) => {
-                  if (!task.startAt && !task.dueAt) return false;
+        {/* Unified Timeline */}
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
+          {days.map((day) => {
+            const isToday = isSameDay(day, new Date());
+            const dayTasks = filteredTasks.filter((task) => {
+              // If task has no dates, show it on the current day (today)
+              if (!task.startAt && !task.dueAt) {
+                return isSameDay(day, new Date());
+              }
 
-                  const startDate = task.startAt
-                    ? new Date(task.startAt)
-                    : null;
-                  const dueDate = task.dueAt ? new Date(task.dueAt) : null;
+              const startDate = task.startAt ? new Date(task.startAt) : null;
+              const dueDate = task.dueAt ? new Date(task.dueAt) : null;
 
-                  // If task has both start and due dates, show it on all days in between
-                  if (startDate && dueDate) {
-                    return day >= startDate && day <= dueDate;
-                  }
+              // If task has both start and due dates, show it on all days in between
+              if (startDate && dueDate) {
+                return day >= startDate && day <= dueDate;
+              }
 
-                  // If only start date, show on that day
-                  if (startDate && !dueDate) {
-                    return isSameDay(startDate, day);
-                  }
+              // If only start date, show on that day
+              if (startDate && !dueDate) {
+                return isSameDay(startDate, day);
+              }
 
-                  // If only due date, show on that day
-                  if (!startDate && dueDate) {
-                    return isSameDay(dueDate, day);
-                  }
+              // If only due date, show on that day
+              if (!startDate && dueDate) {
+                return isSameDay(dueDate, day);
+              }
 
-                  return false;
-                });
+              return false;
+            });
 
-                return (
-                  <div key={day.toISOString()} className="space-y-2">
-                    <div
-                      className={`text-center p-2 rounded-lg ${
-                        isToday
-                          ? 'bg-blue-100 text-blue-900 font-semibold'
-                          : 'bg-slate-100'
-                      }`}
-                    >
-                      <div className="text-sm font-medium">
-                        {format(day, 'EEE')}
-                      </div>
-                      <div className="text-lg">{format(day, 'd')}</div>
-                    </div>
+            return (
+              <div key={day.toISOString()} className="space-y-2">
+                <div
+                  className={`text-center p-2 rounded-lg ${
+                    isToday
+                      ? 'bg-blue-100 text-blue-900 font-semibold'
+                      : 'bg-slate-100'
+                  }`}
+                >
+                  <div className="text-sm font-medium">
+                    {format(day, 'EEE')}
+                  </div>
+                  <div className="text-lg">{format(day, 'd')}</div>
+                </div>
 
-                    <div className="space-y-1 min-h-32">
-                      {dayTasks.map((task) => (
-                        <div
-                          key={task._id}
-                          className={`p-2 border rounded-lg shadow-sm text-xs ${
-                            task.status === 'done'
-                              ? 'bg-green-50 border-green-200'
-                              : task.status === 'in_progress'
-                                ? 'bg-blue-50 border-blue-200'
-                                : 'bg-slate-50 border-slate-200'
-                          }`}
-                        >
-                          <div className="flex items-center space-x-1 mb-1">
-                            <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
-                            <div className="font-medium truncate flex-1">
-                              {task.title}
-                            </div>
+                <div className="space-y-1 min-h-32">
+                  {dayTasks.map((task) => {
+                    // Get user name for this task
+                    const userName =
+                      typeof task.userId === 'object' && task.userId?.name
+                        ? task.userId.name
+                        : 'User';
+                    const taskUserId =
+                      typeof task.userId === 'string'
+                        ? task.userId
+                        : task.userId._id || task.userId.toString();
+
+                    return (
+                      <div
+                        key={task._id}
+                        className={`p-2 border rounded-lg shadow-sm text-xs ${
+                          task.status === 'done'
+                            ? 'bg-green-50 border-green-200'
+                            : task.status === 'in_progress'
+                              ? 'bg-blue-50 border-blue-200'
+                              : 'bg-slate-50 border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-1 mb-1">
+                          <div
+                            className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              task.status === 'done'
+                                ? 'bg-green-500'
+                                : task.status === 'in_progress'
+                                  ? 'bg-blue-500'
+                                  : 'bg-slate-500'
+                            }`}
+                          ></div>
+                          <div
+                            className={`font-medium truncate flex-1 ${
+                              task.status === 'done'
+                                ? 'line-through text-slate-500'
+                                : ''
+                            }`}
+                          >
+                            {task.title}
                           </div>
-                          {task.percent > 0 && (
-                            <div className="mt-1">
-                              <Progress value={task.percent} className="h-1" />
-                            </div>
+                          {task.status === 'done' && (
+                            <div className="text-green-600 text-xs">✓</div>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+
+                        {/* User indicator */}
+                        <div className="flex items-center space-x-1 text-xs text-slate-500">
+                          <div
+                            className={`w-3 h-3 rounded-full ${getUserColor(taskUserId)} flex-shrink-0`}
+                          ></div>
+                          <span className="truncate">{userName}</span>
+                        </div>
+
+                        {task.percent > 0 && (
+                          <div className="mt-1">
+                            <Progress value={task.percent} className="h-1" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -426,10 +461,17 @@ export default function TimelineView() {
           typeof task.userId === 'string'
             ? task.userId
             : task.userId._id || task.userId.toString();
+
+        // Get user name from populated data or fallback
+        const userName =
+          typeof task.userId === 'object' && task.userId?.name
+            ? task.userId.name
+            : 'User';
+
         if (!acc[taskUserId]) {
           acc[taskUserId] = {
             userId: taskUserId,
-            userName: session?.user?.name || 'User',
+            userName: userName,
             tasks: [],
           };
         }
@@ -467,7 +509,10 @@ export default function TimelineView() {
                 end: endOfMonth(currentDate),
               }).map((day) => {
                 const dayTasks = userData.tasks.filter((task) => {
-                  if (!task.startAt && !task.dueAt) return false;
+                  // If task has no dates, show it on the current day (today)
+                  if (!task.startAt && !task.dueAt) {
+                    return isSameDay(day, new Date());
+                  }
 
                   const startDate = task.startAt
                     ? new Date(task.startAt)
@@ -523,8 +568,27 @@ export default function TimelineView() {
                           }`}
                         >
                           <div className="flex items-center space-x-1">
-                            <div className="w-1 h-1 rounded-full bg-blue-500 flex-shrink-0"></div>
-                            <span className="truncate">{task.title}</span>
+                            <div
+                              className={`w-1 h-1 rounded-full flex-shrink-0 ${
+                                task.status === 'done'
+                                  ? 'bg-green-500'
+                                  : task.status === 'in_progress'
+                                    ? 'bg-blue-500'
+                                    : 'bg-slate-500'
+                              }`}
+                            ></div>
+                            <span
+                              className={`truncate ${
+                                task.status === 'done'
+                                  ? 'line-through text-slate-500'
+                                  : ''
+                              }`}
+                            >
+                              {task.title}
+                            </span>
+                            {task.status === 'done' && (
+                              <span className="text-green-600 text-xs">✓</span>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -555,12 +619,6 @@ export default function TimelineView() {
     });
     const personalTasks = getFilteredTasks(allUserTasks);
 
-    console.log('Personal Month View Debug:');
-    console.log('Session user ID:', session?.user?.id);
-    console.log('Total tasks:', tasks.length);
-    console.log('User tasks before filtering:', allUserTasks.length);
-    console.log('User tasks after tag filtering:', personalTasks.length);
-
     return (
       <div className="space-y-4">
         {/* Personal Header */}
@@ -587,7 +645,10 @@ export default function TimelineView() {
             end: endOfMonth(currentDate),
           }).map((day) => {
             const dayTasks = personalTasks.filter((task) => {
-              if (!task.startAt && !task.dueAt) return false;
+              // If task has no dates, show it on the current day (today)
+              if (!task.startAt && !task.dueAt) {
+                return isSameDay(day, new Date());
+              }
 
               const startDate = task.startAt ? new Date(task.startAt) : null;
               const dueDate = task.dueAt ? new Date(task.dueAt) : null;
@@ -640,8 +701,27 @@ export default function TimelineView() {
                       }`}
                     >
                       <div className="flex items-center space-x-1">
-                        <div className="w-1 h-1 rounded-full bg-blue-500 flex-shrink-0"></div>
-                        <span className="truncate">{task.title}</span>
+                        <div
+                          className={`w-1 h-1 rounded-full flex-shrink-0 ${
+                            task.status === 'done'
+                              ? 'bg-green-500'
+                              : task.status === 'in_progress'
+                                ? 'bg-blue-500'
+                                : 'bg-slate-500'
+                          }`}
+                        ></div>
+                        <span
+                          className={`truncate ${
+                            task.status === 'done'
+                              ? 'line-through text-slate-500'
+                              : ''
+                          }`}
+                        >
+                          {task.title}
+                        </span>
+                        {task.status === 'done' && (
+                          <span className="text-green-600 text-xs">✓</span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -787,27 +867,6 @@ export default function TimelineView() {
           </div>
         </div>
       </div>
-
-      {/* Tag Filter Controls - Mobile responsive */}
-      {timelineMode !== 'calendar' && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700 block">
-            {t('timeline.filterByTag')}:
-          </label>
-          <select
-            value={selectedTag}
-            onChange={(e) => setSelectedTag(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">{t('timeline.allTags')}</option>
-            {getAllTags().map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
 
       <Card>
         <CardContent className="p-6">

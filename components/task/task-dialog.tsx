@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, X, Tag, CheckSquare, AlertCircle } from 'lucide-react';
+import { Plus, X, CheckSquare, AlertCircle } from 'lucide-react';
 import { ITask } from '@/models/Task';
 import { format } from 'date-fns';
 import { useTranslation } from '@/lib/hooks/use-translation';
@@ -38,7 +38,6 @@ const taskSchema = z.object({
     .optional(),
   status: z.enum(['backlog', 'in_progress', 'done']),
   priority: z.enum(['low', 'med', 'high']),
-  tags: z.array(z.string()),
   startAt: z.string().optional(),
   dueAt: z.string().optional(),
   percent: z.number().min(0).max(100).optional(),
@@ -66,7 +65,6 @@ export default function TaskDialog({
   onSave,
 }: TaskDialogProps) {
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
-  const [tagInput, setTagInput] = useState('');
   const { t } = useTranslation();
 
   const {
@@ -76,19 +74,18 @@ export default function TaskDialog({
     reset,
     setValue,
     watch,
-  } = useForm<TaskFormData>({
+  } = useForm({
     resolver: zodResolver(taskSchema),
     defaultValues: {
       status: 'backlog',
       priority: 'med',
       percent: 0,
-      tags: [],
     },
   });
 
   const watchedPercent = watch('percent', 0);
-  const watchedTags = watch('tags', []);
   const hasChecklist = checklistItems.length > 0;
+
   const checklistProgress = hasChecklist
     ? Math.round(
         (checklistItems.filter((item) => item.checked).length /
@@ -104,7 +101,6 @@ export default function TaskDialog({
         description: task.description || '',
         status: task.status,
         priority: task.priority,
-        tags: task.tags || [],
         startAt: task.startAt
           ? format(new Date(task.startAt), 'yyyy-MM-dd')
           : '',
@@ -124,7 +120,6 @@ export default function TaskDialog({
         description: '',
         status: 'backlog',
         priority: 'med',
-        tags: [],
         startAt: '',
         dueAt: '',
         percent: 0,
@@ -152,29 +147,19 @@ export default function TaskDialog({
     setChecklistItems((items) => items.filter((item) => item.id !== id));
   };
 
-  const addTag = () => {
-    if (tagInput.trim() && !watchedTags.includes(tagInput.trim())) {
-      setValue('tags', [...watchedTags, tagInput.trim()]);
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setValue(
-      'tags',
-      watchedTags.filter((tag) => tag !== tagToRemove)
-    );
-  };
-
-  const onSubmit = async (data: TaskFormData) => {
+  const onSubmit = async (data: any) => {
     try {
       const taskData = {
-        ...data,
+        title: data.title,
+        description: data.description,
+        status: data.status,
+        priority: data.priority,
         items: checklistItems.map((item) => ({
           label: item.label,
           checked: item.checked,
         })),
-        percent: hasChecklist ? undefined : data.percent,
+        // Don't include percent when there are checklist items - let the model calculate it
+        ...(hasChecklist ? {} : { percent: data.percent }),
         startAt: data.startAt
           ? new Date(data.startAt).toISOString()
           : undefined,
@@ -293,44 +278,6 @@ export default function TaskDialog({
               <Label htmlFor="dueAt">{t('tasks.dueDate')}</Label>
               <Input id="dueAt" type="date" {...register('dueAt')} />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>{t('tasks.tags')}</Label>
-            <div className="flex space-x-2">
-              <Input
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder={t('tasks.tagPlaceholder')}
-                onKeyPress={(e) =>
-                  e.key === 'Enter' && (e.preventDefault(), addTag())
-                }
-              />
-              <Button type="button" onClick={addTag} size="sm">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            {watchedTags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {watchedTags.map((tag, index) => (
-                  <Badge
-                    key={index}
-                    variant="secondary"
-                    className="flex items-center space-x-1"
-                  >
-                    <Tag className="h-3 w-3" />
-                    <span>{tag}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeTag(tag)}
-                      className="ml-1 hover:text-red-600"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="space-y-4">

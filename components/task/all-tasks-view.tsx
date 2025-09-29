@@ -18,7 +18,6 @@ import {
   Plus,
   Calendar,
   CheckSquare,
-  Tag,
   Edit,
   Trash2,
 } from 'lucide-react';
@@ -110,6 +109,11 @@ export default function AllTasksView() {
       });
 
       if (!response.ok) {
+        if (response.status === 404) {
+          // Task already deleted, just refresh the list
+          fetchTasks();
+          return;
+        }
         throw new Error('Failed to delete task');
       }
       fetchTasks(); // Re-fetch to ensure consistency
@@ -301,18 +305,11 @@ export default function AllTasksView() {
                     </div>
                   </div>
 
-                  {/* Status and tags - responsive layout */}
+                  {/* Status - responsive layout */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <Badge className={`${getStatusColor(task.status)} w-fit`}>
                       {task.status.replace('_', ' ')}
                     </Badge>
-
-                    {task.tags.length > 0 && (
-                      <div className="flex items-center space-x-1 text-sm text-slate-600">
-                        <Tag className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{task.tags.join(', ')}</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Dates - responsive layout */}

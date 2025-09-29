@@ -13,7 +13,6 @@ import {
 import {
   CheckCircle,
   Calendar,
-  Tag,
   Clock,
   BarChart3,
   Eye,
@@ -117,23 +116,6 @@ function TaskDetailDialog({ task, isOpen, onClose }: TaskDetailDialogProps) {
             )}
           </div>
 
-          {/* Tags */}
-          {task.tags && task.tags.length > 0 && (
-            <div>
-              <label className="text-sm font-medium text-slate-600 flex items-center space-x-1">
-                <Tag className="h-4 w-4" />
-                <span>{t('tasks.tags')}</span>
-              </label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {task.tags.map((tag, index) => (
-                  <Badge key={index} variant="outline">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Checklist */}
           {task.items && task.items.length > 0 && (
             <div>
@@ -164,9 +146,23 @@ function TaskDetailDialog({ task, isOpen, onClose }: TaskDetailDialogProps) {
                 <div className="mt-2">
                   <div className="flex items-center justify-between text-sm text-slate-600 mb-1">
                     <span>{t('tasks.progress')}</span>
-                    <span>{task.percent}%</span>
+                    <span>
+                      {Math.round(
+                        (task.items.filter((item) => item.checked).length /
+                          task.items.length) *
+                          100
+                      )}
+                      %
+                    </span>
                   </div>
-                  <Progress value={task.percent} className="h-2" />
+                  <Progress
+                    value={Math.round(
+                      (task.items.filter((item) => item.checked).length /
+                        task.items.length) *
+                        100
+                    )}
+                    className="h-2"
+                  />
                 </div>
               </div>
             </div>
@@ -185,7 +181,15 @@ function TaskDetailDialog({ task, isOpen, onClose }: TaskDetailDialogProps) {
               <div className="flex items-center space-x-2">
                 <BarChart3 className="h-4 w-4" />
                 <span>
-                  {t('completed.finalProgress')}: {task.percent}%
+                  {t('completed.finalProgress')}:{' '}
+                  {task.items && task.items.length > 0
+                    ? Math.round(
+                        (task.items.filter((item) => item.checked).length /
+                          task.items.length) *
+                          100
+                      )
+                    : task.percent}
+                  %
                 </span>
               </div>
             </div>
@@ -232,10 +236,7 @@ export default function CompletedTasksView() {
       const filtered = tasks.filter(
         (task) =>
           task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.tags?.some((tag) =>
-            tag.toLowerCase().includes(searchQuery.toLowerCase())
-          )
+          task.description?.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredTasks(filtered);
     } else {
@@ -354,20 +355,31 @@ export default function CompletedTasksView() {
                         >
                           {t(`tasks.${task.priority}`)}
                         </Badge>
-                        {task.tags?.map((tag, index) => (
-                          <Badge key={index} variant="outline">
-                            {tag}
-                          </Badge>
-                        ))}
                       </div>
 
                       {task.items && task.items.length > 0 && (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm text-slate-600">
                             <span>{t('tasks.checklist')}</span>
-                            <span>{task.percent}%</span>
+                            <span>
+                              {Math.round(
+                                (task.items.filter((item) => item.checked)
+                                  .length /
+                                  task.items.length) *
+                                  100
+                              )}
+                              %
+                            </span>
                           </div>
-                          <Progress value={task.percent} className="h-2" />
+                          <Progress
+                            value={Math.round(
+                              (task.items.filter((item) => item.checked)
+                                .length /
+                                task.items.length) *
+                                100
+                            )}
+                            className="h-2"
+                          />
                         </div>
                       )}
 
