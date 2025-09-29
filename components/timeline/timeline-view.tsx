@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -60,7 +60,7 @@ export default function TimelineView() {
     return taskList;
   };
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       // Fetch all tasks for global view
       const response = await fetch('/api/tasks?scope=all');
@@ -102,13 +102,13 @@ export default function TimelineView() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (session?.user?.id) {
       fetchTasks();
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, fetchTasks]);
 
   // const getTasksForWeek = (weekStart: Date) => {
   //   const weekEnd = endOfWeek(weekStart);

@@ -88,7 +88,7 @@ export default function AllTasksView() {
       scopeFilter,
       searchQuery,
     });
-  }, []);
+  }, [statusFilter, priorityFilter, scopeFilter, searchQuery]);
 
   const handleTaskEdit = (task: ITask) => {
     setEditingTask(task);

@@ -13,7 +13,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
   Select,
@@ -42,8 +41,6 @@ const taskSchema = z.object({
   dueAt: z.string().optional(),
   percent: z.number().min(0).max(100).optional(),
 });
-
-type TaskFormData = z.infer<typeof taskSchema>;
 
 interface ChecklistItem {
   id: string;
@@ -147,7 +144,7 @@ export default function TaskDialog({
     setChecklistItems((items) => items.filter((item) => item.id !== id));
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: z.infer<typeof taskSchema>) => {
     try {
       const taskData = {
         title: data.title,
