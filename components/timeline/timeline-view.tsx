@@ -216,32 +216,55 @@ export default function TimelineView() {
         <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {days.map((day) => {
             const isToday = isSameDay(day, new Date());
-            const dayTasks = personalTasks.filter((task) => {
-              // If task has no dates, show it on the current day (today)
-              if (!task.startAt && !task.dueAt) {
-                return isSameDay(day, new Date());
-              }
+            const dayTasks = personalTasks
+              .filter((task) => {
+                // If task has no dates, show it on the current day (today)
+                if (!task.startAt && !task.dueAt) {
+                  return isSameDay(day, new Date());
+                }
 
-              const startDate = task.startAt ? new Date(task.startAt) : null;
-              const dueDate = task.dueAt ? new Date(task.dueAt) : null;
+                const startDate = task.startAt ? new Date(task.startAt) : null;
+                const dueDate = task.dueAt ? new Date(task.dueAt) : null;
 
-              // If task has both start and due dates, show it on all days in between
-              if (startDate && dueDate) {
-                return day >= startDate && day <= dueDate;
-              }
+                // If task has both start and due dates, show it on all days in between
+                if (startDate && dueDate) {
+                  return day >= startDate && day <= dueDate;
+                }
 
-              // If only start date, show on that day
-              if (startDate && !dueDate) {
-                return isSameDay(startDate, day);
-              }
+                // If only start date, show on that day
+                if (startDate && !dueDate) {
+                  return isSameDay(startDate, day);
+                }
 
-              // If only due date, show on that day
-              if (!startDate && dueDate) {
-                return isSameDay(dueDate, day);
-              }
+                // If only due date, show on that day
+                if (!startDate && dueDate) {
+                  return isSameDay(dueDate, day);
+                }
 
-              return false;
-            });
+                return false;
+              })
+              .sort((a, b) => {
+                // Sort by priority first (high > medium > low)
+                const priorityOrder = { high: 3, medium: 2, low: 1 };
+                const aPriority =
+                  priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+                const bPriority =
+                  priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+
+                if (aPriority !== bPriority) {
+                  return bPriority - aPriority; // Higher priority first
+                }
+
+                // Then sort by due date (earlier due dates first)
+                const aDueDate = a.dueAt
+                  ? new Date(a.dueAt).getTime()
+                  : Infinity;
+                const bDueDate = b.dueAt
+                  ? new Date(b.dueAt).getTime()
+                  : Infinity;
+
+                return aDueDate - bDueDate;
+              });
 
             return (
               <div key={day.toISOString()} className="space-y-2">
@@ -338,32 +361,55 @@ export default function TimelineView() {
         <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {days.map((day) => {
             const isToday = isSameDay(day, new Date());
-            const dayTasks = filteredTasks.filter((task) => {
-              // If task has no dates, show it on the current day (today)
-              if (!task.startAt && !task.dueAt) {
-                return isSameDay(day, new Date());
-              }
+            const dayTasks = filteredTasks
+              .filter((task) => {
+                // If task has no dates, show it on the current day (today)
+                if (!task.startAt && !task.dueAt) {
+                  return isSameDay(day, new Date());
+                }
 
-              const startDate = task.startAt ? new Date(task.startAt) : null;
-              const dueDate = task.dueAt ? new Date(task.dueAt) : null;
+                const startDate = task.startAt ? new Date(task.startAt) : null;
+                const dueDate = task.dueAt ? new Date(task.dueAt) : null;
 
-              // If task has both start and due dates, show it on all days in between
-              if (startDate && dueDate) {
-                return day >= startDate && day <= dueDate;
-              }
+                // If task has both start and due dates, show it on all days in between
+                if (startDate && dueDate) {
+                  return day >= startDate && day <= dueDate;
+                }
 
-              // If only start date, show on that day
-              if (startDate && !dueDate) {
-                return isSameDay(startDate, day);
-              }
+                // If only start date, show on that day
+                if (startDate && !dueDate) {
+                  return isSameDay(startDate, day);
+                }
 
-              // If only due date, show on that day
-              if (!startDate && dueDate) {
-                return isSameDay(dueDate, day);
-              }
+                // If only due date, show on that day
+                if (!startDate && dueDate) {
+                  return isSameDay(dueDate, day);
+                }
 
-              return false;
-            });
+                return false;
+              })
+              .sort((a, b) => {
+                // Sort by priority first (high > medium > low)
+                const priorityOrder = { high: 3, medium: 2, low: 1 };
+                const aPriority =
+                  priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+                const bPriority =
+                  priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+
+                if (aPriority !== bPriority) {
+                  return bPriority - aPriority; // Higher priority first
+                }
+
+                // Then sort by due date (earlier due dates first)
+                const aDueDate = a.dueAt
+                  ? new Date(a.dueAt).getTime()
+                  : Infinity;
+                const bDueDate = b.dueAt
+                  ? new Date(b.dueAt).getTime()
+                  : Infinity;
+
+                return aDueDate - bDueDate;
+              });
 
             return (
               <div key={day.toISOString()} className="space-y-2">
@@ -453,157 +499,164 @@ export default function TimelineView() {
   };
 
   const renderMonthView = () => {
-    // For month view, show filtered user timelines in a more compact format
+    // Get all filtered tasks (no grouping by user) - follow week view pattern
     const filteredTasks = getFilteredTasks(tasks);
-    const userTasks = filteredTasks.reduce(
-      (acc, task) => {
-        const taskUserId =
-          typeof task.userId === 'string'
-            ? task.userId
-            : task.userId._id || task.userId.toString();
-
-        // Get user name from populated data or fallback
-        const userName =
-          typeof task.userId === 'object' && task.userId?.name
-            ? task.userId.name
-            : 'User';
-
-        if (!acc[taskUserId]) {
-          acc[taskUserId] = {
-            userId: taskUserId,
-            userName: userName,
-            tasks: [],
-          };
-        }
-        acc[taskUserId].tasks.push(task);
-        return acc;
-      },
-      {} as Record<string, { userId: string; userName: string; tasks: ITask[] }>
-    );
 
     return (
-      <div className="space-y-6">
-        {Object.values(userTasks).map((userData) => (
-          <div key={userData.userId} className="space-y-4">
-            {/* User Header */}
-            <div className="flex items-center space-x-3">
-              <div
-                className={`w-8 h-8 rounded-full ${getUserColor(userData.userId)} flex items-center justify-center text-white font-bold text-sm`}
-              >
-                {userData.userName.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900">
-                  {userData.userName}
-                </h3>
-                <p className="text-sm text-slate-500">
-                  {userData.tasks.length} {t('board.tasks')}
-                </p>
-              </div>
-            </div>
-
-            {/* User Month Summary */}
-            <div className="grid grid-cols-7 gap-1 sm:gap-2">
-              {eachDayOfInterval({
-                start: startOfMonth(currentDate),
-                end: endOfMonth(currentDate),
-              }).map((day) => {
-                const dayTasks = userData.tasks.filter((task) => {
-                  // If task has no dates, show it on the current day (today)
-                  if (!task.startAt && !task.dueAt) {
-                    return isSameDay(day, new Date());
-                  }
-
-                  const startDate = task.startAt
-                    ? new Date(task.startAt)
-                    : null;
-                  const dueDate = task.dueAt ? new Date(task.dueAt) : null;
-
-                  // If task has both start and due dates, show it on all days in between
-                  if (startDate && dueDate) {
-                    return day >= startDate && day <= dueDate;
-                  }
-
-                  // If only start date, show on that day
-                  if (startDate && !dueDate) {
-                    return isSameDay(startDate, day);
-                  }
-
-                  // If only due date, show on that day
-                  if (!startDate && dueDate) {
-                    return isSameDay(dueDate, day);
-                  }
-
-                  return false;
-                });
-                const isToday = isSameDay(day, new Date());
-                const isCurrentMonth =
-                  day.getMonth() === currentDate.getMonth();
-
-                return (
-                  <div key={day.toISOString()} className="space-y-1">
-                    <div
-                      className={`text-center p-1 rounded ${
-                        isToday
-                          ? 'bg-blue-100 text-blue-900 font-semibold'
-                          : isCurrentMonth
-                            ? 'text-slate-900'
-                            : 'text-slate-400'
-                      }`}
-                    >
-                      <div className="text-xs">{format(day, 'EEE')}</div>
-                      <div className="text-sm">{format(day, 'd')}</div>
-                    </div>
-
-                    <div className="space-y-1 min-h-20">
-                      {dayTasks.slice(0, 2).map((task) => (
-                        <div
-                          key={task._id}
-                          className={`p-1 border rounded text-xs ${
-                            task.status === 'done'
-                              ? 'bg-green-50 border-green-200'
-                              : task.status === 'in_progress'
-                                ? 'bg-blue-50 border-blue-200'
-                                : 'bg-slate-50 border-slate-200'
-                          }`}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <div
-                              className={`w-1 h-1 rounded-full flex-shrink-0 ${
-                                task.status === 'done'
-                                  ? 'bg-green-500'
-                                  : task.status === 'in_progress'
-                                    ? 'bg-blue-500'
-                                    : 'bg-slate-500'
-                              }`}
-                            ></div>
-                            <span
-                              className={`truncate ${
-                                task.status === 'done'
-                                  ? 'line-through text-slate-500'
-                                  : ''
-                              }`}
-                            >
-                              {task.title}
-                            </span>
-                            {task.status === 'done' && (
-                              <span className="text-green-600 text-xs">✓</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      {dayTasks.length > 2 && (
-                        <div className="text-xs text-slate-500 text-center">
-                          +{dayTasks.length - 2} {t('common.more')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+      <div className="space-y-4">
+        {/* Unified Timeline Header - match week view */}
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+            👥
           </div>
-        ))}
+          <div>
+            <h3 className="font-semibold text-slate-900">
+              {t('timeline.global')}
+            </h3>
+            <p className="text-sm text-slate-500">
+              {filteredTasks.length} {t('board.tasks')} from all users
+            </p>
+          </div>
+        </div>
+
+        {/* Compact Month Timeline */}
+        <div className="grid grid-cols-7 gap-1">
+          {eachDayOfInterval({
+            start: startOfMonth(currentDate),
+            end: endOfMonth(currentDate),
+          }).map((day) => {
+            const isToday = isSameDay(day, new Date());
+            const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+            const dayTasks = filteredTasks
+              .filter((task) => {
+                // If task has no dates, show it on the current day (today)
+                if (!task.startAt && !task.dueAt) {
+                  return isSameDay(day, new Date());
+                }
+
+                const startDate = task.startAt ? new Date(task.startAt) : null;
+                const dueDate = task.dueAt ? new Date(task.dueAt) : null;
+
+                // If task has both start and due dates, show it on all days in between
+                if (startDate && dueDate) {
+                  return day >= startDate && day <= dueDate;
+                }
+
+                // If only start date, show on that day
+                if (startDate && !dueDate) {
+                  return isSameDay(startDate, day);
+                }
+
+                // If only due date, show on that day
+                if (!startDate && dueDate) {
+                  return isSameDay(dueDate, day);
+                }
+
+                return false;
+              })
+              .sort((a, b) => {
+                // Sort by priority first (high > medium > low)
+                const priorityOrder = { high: 3, medium: 2, low: 1 };
+                const aPriority =
+                  priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+                const bPriority =
+                  priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+
+                if (aPriority !== bPriority) {
+                  return bPriority - aPriority; // Higher priority first
+                }
+
+                // Then sort by due date (earlier due dates first)
+                const aDueDate = a.dueAt
+                  ? new Date(a.dueAt).getTime()
+                  : Infinity;
+                const bDueDate = b.dueAt
+                  ? new Date(b.dueAt).getTime()
+                  : Infinity;
+
+                return aDueDate - bDueDate;
+              });
+
+            return (
+              <div key={day.toISOString()} className="space-y-1">
+                <div
+                  className={`text-center p-1 rounded ${
+                    isToday
+                      ? 'bg-blue-100 text-blue-900 font-semibold'
+                      : isCurrentMonth
+                        ? 'text-slate-900'
+                        : 'text-slate-400'
+                  }`}
+                >
+                  <div className="text-xs">{format(day, 'EEE')}</div>
+                  <div className="text-sm">{format(day, 'd')}</div>
+                </div>
+
+                <div className="space-y-1 min-h-16">
+                  {dayTasks.slice(0, 3).map((task) => {
+                    // Get user name for this task - match week view
+                    const userName =
+                      typeof task.userId === 'object' && task.userId?.name
+                        ? task.userId.name
+                        : 'User';
+                    const taskUserId =
+                      typeof task.userId === 'string'
+                        ? task.userId
+                        : task.userId._id || task.userId.toString();
+
+                    return (
+                      <div
+                        key={task._id}
+                        className={`p-1 border rounded text-xs ${
+                          task.status === 'done'
+                            ? 'bg-green-50 border-green-200'
+                            : task.status === 'in_progress'
+                              ? 'bg-blue-50 border-blue-200'
+                              : 'bg-slate-50 border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-1">
+                          <div
+                            className={`w-1 h-1 rounded-full flex-shrink-0 ${
+                              task.status === 'done'
+                                ? 'bg-green-500'
+                                : task.status === 'in_progress'
+                                  ? 'bg-blue-500'
+                                  : 'bg-slate-500'
+                            }`}
+                          ></div>
+                          <span
+                            className={`truncate flex-1 ${
+                              task.status === 'done'
+                                ? 'line-through text-slate-500'
+                                : ''
+                            }`}
+                          >
+                            {task.title}
+                          </span>
+                          {task.status === 'done' && (
+                            <span className="text-green-600 text-xs">✓</span>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-1 text-xs text-slate-500">
+                          <div
+                            className={`w-2 h-2 rounded-full ${getUserColor(taskUserId)} flex-shrink-0`}
+                          ></div>
+                          <span className="truncate">{userName}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {dayTasks.length > 3 && (
+                    <div className="text-xs text-slate-500 text-center">
+                      +{dayTasks.length - 3} more
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -638,40 +691,63 @@ export default function TimelineView() {
           </div>
         </div>
 
-        {/* Personal Month Summary */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-2">
+        {/* Compact Personal Timeline */}
+        <div className="grid grid-cols-7 gap-1">
           {eachDayOfInterval({
             start: startOfMonth(currentDate),
             end: endOfMonth(currentDate),
           }).map((day) => {
-            const dayTasks = personalTasks.filter((task) => {
-              // If task has no dates, show it on the current day (today)
-              if (!task.startAt && !task.dueAt) {
-                return isSameDay(day, new Date());
-              }
-
-              const startDate = task.startAt ? new Date(task.startAt) : null;
-              const dueDate = task.dueAt ? new Date(task.dueAt) : null;
-
-              // If task has both start and due dates, show it on all days in between
-              if (startDate && dueDate) {
-                return day >= startDate && day <= dueDate;
-              }
-
-              // If only start date, show on that day
-              if (startDate && !dueDate) {
-                return isSameDay(startDate, day);
-              }
-
-              // If only due date, show on that day
-              if (!startDate && dueDate) {
-                return isSameDay(dueDate, day);
-              }
-
-              return false;
-            });
             const isToday = isSameDay(day, new Date());
             const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+            const dayTasks = personalTasks
+              .filter((task) => {
+                // If task has no dates, show it on the current day (today)
+                if (!task.startAt && !task.dueAt) {
+                  return isSameDay(day, new Date());
+                }
+
+                const startDate = task.startAt ? new Date(task.startAt) : null;
+                const dueDate = task.dueAt ? new Date(task.dueAt) : null;
+
+                // If task has both start and due dates, show it on all days in between
+                if (startDate && dueDate) {
+                  return day >= startDate && day <= dueDate;
+                }
+
+                // If only start date, show on that day
+                if (startDate && !dueDate) {
+                  return isSameDay(startDate, day);
+                }
+
+                // If only due date, show on that day
+                if (!startDate && dueDate) {
+                  return isSameDay(dueDate, day);
+                }
+
+                return false;
+              })
+              .sort((a, b) => {
+                // Sort by priority first (high > medium > low)
+                const priorityOrder = { high: 3, medium: 2, low: 1 };
+                const aPriority =
+                  priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+                const bPriority =
+                  priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+
+                if (aPriority !== bPriority) {
+                  return bPriority - aPriority; // Higher priority first
+                }
+
+                // Then sort by due date (earlier due dates first)
+                const aDueDate = a.dueAt
+                  ? new Date(a.dueAt).getTime()
+                  : Infinity;
+                const bDueDate = b.dueAt
+                  ? new Date(b.dueAt).getTime()
+                  : Infinity;
+
+                return aDueDate - bDueDate;
+              });
 
             return (
               <div key={day.toISOString()} className="space-y-1">
@@ -688,8 +764,8 @@ export default function TimelineView() {
                   <div className="text-sm">{format(day, 'd')}</div>
                 </div>
 
-                <div className="space-y-1 min-h-20">
-                  {dayTasks.slice(0, 2).map((task) => (
+                <div className="space-y-1 min-h-16">
+                  {dayTasks.slice(0, 3).map((task) => (
                     <div
                       key={task._id}
                       className={`p-1 border rounded text-xs ${
@@ -711,7 +787,7 @@ export default function TimelineView() {
                           }`}
                         ></div>
                         <span
-                          className={`truncate ${
+                          className={`truncate flex-1 ${
                             task.status === 'done'
                               ? 'line-through text-slate-500'
                               : ''
@@ -725,9 +801,9 @@ export default function TimelineView() {
                       </div>
                     </div>
                   ))}
-                  {dayTasks.length > 2 && (
+                  {dayTasks.length > 3 && (
                     <div className="text-xs text-slate-500 text-center">
-                      +{dayTasks.length - 2} {t('common.more')}
+                      +{dayTasks.length - 3} more
                     </div>
                   )}
                 </div>
@@ -753,10 +829,6 @@ export default function TimelineView() {
 
   const goToToday = () => {
     setCurrentDate(new Date());
-  };
-
-  const goToOctober = () => {
-    setCurrentDate(new Date(2024, 9, 1)); // October 2024 (month is 0-indexed)
   };
 
   if (isLoading) {
@@ -847,14 +919,6 @@ export default function TimelineView() {
               className="flex-1 sm:flex-none"
             >
               {t('common.today')}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goToOctober}
-              className="flex-1 sm:flex-none"
-            >
-              Oct 2024
             </Button>
             <Button
               variant="outline"
